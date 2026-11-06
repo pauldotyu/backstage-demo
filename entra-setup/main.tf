@@ -13,6 +13,13 @@ data "azuread_service_principal" "msgraph" {
   client_id = "00000003-0000-0000-c000-000000000000"
 }
 
+data "terraform_remote_state" "azure" {
+  backend = "local"
+  config = {
+    path = "${path.module}/../azure-setup/terraform.tfstate"
+  }
+}
+
 locals {
   msgraph_oauth2_permission_scope_ids = {
     for scope in data.azuread_service_principal.msgraph.oauth2_permission_scopes :
@@ -45,9 +52,9 @@ resource "azuread_application" "example" {
   sign_in_audience = "AzureADMyOrg"
 
   web {
-    homepage_url = "http://localhost:3000/"
+    homepage_url = "https://backstage.${data.terraform_remote_state.azure.outputs.default_domain}"
     redirect_uris = [
-      "http://localhost:7007/api/auth/microsoft/handler/frame"
+      "https://backstage.${data.terraform_remote_state.azure.outputs.default_domain}/api/auth/microsoft/handler/frame"
     ]
   }
 
