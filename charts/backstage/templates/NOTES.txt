@@ -1,0 +1,25 @@
+Backstage is deploying as {{ include "backstage.fullname" . }} in namespace {{ .Release.Namespace }}.
+
+URL: {{ include "backstage.baseUrl" . }}
+{{- if not .Values.existingSecret }}
+
+WARNING: existingSecret is not set, so ${ENV_VAR} placeholders in appConfig
+(for example AZURE_CLIENT_ID) will not resolve and sign-in will not work.
+{{- end }}
+{{- if .Values.postgresql.enabled }}
+
+Using the in-cluster PostgreSQL ({{ include "backstage.postgresql.fullname" . }}). It is meant for demos only.
+{{- end }}
+{{- if .Values.gateway.enabled }}
+
+Check the gateway and certificate:
+{{- if .Values.gateway.tls.defaultDomainCertificate }}
+  kubectl -n {{ .Release.Namespace }} wait --for=condition=Available defaultdomaincertificate/{{ include "backstage.fullname" . }} --timeout=5m
+{{- end }}
+  kubectl -n {{ .Release.Namespace }} wait --for=condition=Programmed gateway/{{ include "backstage.fullname" . }} --timeout=5m
+  kubectl -n {{ .Release.Namespace }} get httproute
+{{- else }}
+
+Access it locally:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "backstage.fullname" . }} 7007:{{ .Values.service.port }}
+{{- end }}

@@ -1,8 +1,33 @@
+# Version control and editor state
 .git
+.github
+.vscode
+.DS_Store
+
+# Dependencies and build output are produced inside the image
+**/node_modules
+**/dist
+**/dist-types
 .yarn/cache
 .yarn/install-state.gz
-node_modules
-packages/*/src
-packages/*/node_modules
-plugins
+.yarn/unplugged
+.yarn/build-state.yml
+
+# Local config and secrets must never enter the build context
 *.local.yaml
+*-credentials.yaml
+.env
+.env.*
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform
+
+# Not needed to build the image
+azure-setup
+entra-setup
+charts
+hack
+e2e-test-report
+coverage
+site
+*.md

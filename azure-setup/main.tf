@@ -41,10 +41,6 @@ resource "azurerm_kubernetes_automatic_cluster" "example" {
   identity {
     type = "SystemAssigned"
   }
-
-  web_app_routing_ingress {
-    istio_enabled = true
-  }
 }
 
 resource "azapi_update_resource" "add_cluster_features" {
@@ -59,6 +55,12 @@ resource "azapi_update_resource" "add_cluster_features" {
         webAppRouting = {
           defaultDomain = {
             enabled = true
+          }
+          enabled = true
+          gatewayApiImplementations = {
+            appRoutingIstio = {
+              mode = "Enabled"
+            }
           }
         }
       }

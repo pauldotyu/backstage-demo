@@ -1,0 +1,203 @@
+# Default values for the backstage chart.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  registry: ghcr.io
+  repository: pauldotyu/backstage-demo
+  # Defaults to the chart appVersion, which CI pins to the image built from the same commit.
+  tag: ""
+  # Optional digest (sha256:...). Takes precedence over tag when set.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+# Public URL of Backstage. Defaults to https://<gateway.hostname> when the Gateway is enabled.
+# Used for app.baseUrl, backend.baseUrl, and backend.cors.origin.
+baseUrl: ""
+
+# Backstage configuration rendered to a ConfigMap and loaded after
+# app-config.yaml and app-config.production.yaml, so it overrides both.
+# Never put secret values here. Reference environment variables with ${ENV_VAR}
+# placeholders and supply them through `existingSecret`.
+appConfig:
+  auth:
+    environment: production
+    providers:
+      microsoft:
+        production:
+          clientId: ${AZURE_CLIENT_ID}
+          clientSecret: ${AZURE_CLIENT_SECRET}
+          tenantId: ${AZURE_TENANT_ID}
+          domainHint: ${AZURE_TENANT_ID}
+          signIn:
+            resolvers:
+              - resolver: emailMatchingUserEntityAnnotation
+  catalog:
+    providers:
+      microsoftGraphOrg:
+        default:
+          tenantId: ${AZURE_TENANT_ID}
+          clientId: ${AZURE_CLIENT_ID}
+          clientSecret: ${AZURE_CLIENT_SECRET}
+          userGroupMember:
+            filter: id eq '${AZURE_GROUP_ID}'
+          group:
+            filter: id eq '${AZURE_GROUP_ID}'
+          schedule:
+            frequency: { minutes: 30 }
+            timeout: { minutes: 3 }
+  techdocs:
+    generator:
+      # The image does not include Docker, so TechDocs cannot use runIn: docker.
+      runIn: local
+
+# Name of an existing Secret whose keys are exposed to Backstage as environment
+# variables, resolving the ${ENV_VAR} placeholders in appConfig.
+# Expected keys with the default appConfig: AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
+# AZURE_TENANT_ID, AZURE_GROUP_ID. Optional: GITHUB_TOKEN.
+existingSecret: ""
+
+# Additional environment variables for the Backstage container.
+extraEnv: []
+# Additional envFrom sources for the Backstage container.
+extraEnvFrom: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+# Requests and limits are required by AKS Automatic deployment safeguards.
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+startupProbe:
+  httpGet:
+    path: /.backstage/health/v1/liveness
+    port: http
+  periodSeconds: 5
+  failureThreshold: 60
+livenessProbe:
+  httpGet:
+    path: /.backstage/health/v1/liveness
+    port: http
+  periodSeconds: 10
+  failureThreshold: 3
+readinessProbe:
+  httpGet:
+    path: /.backstage/health/v1/readiness
+    port: http
+  periodSeconds: 10
+  failureThreshold: 3
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+# When empty, a default spread across nodes is rendered. AKS Automatic requires
+# anti-affinity or topology spread constraints.
+topologySpreadConstraints: []
+
+service:
+  type: ClusterIP
+  port: 7007
+
+# Gateway API resources. Uses the AKS application routing Gateway API
+# implementation (approuting-istio) and the managed default domain.
+gateway:
+  enabled: true
+  gatewayClassName: approuting-istio
+  # Required when enabled. Must be one label under the cluster default domain,
+  # for example backstage.<id>.<region>.aksapp.io, because the managed
+  # certificate is a single-level wildcard.
+  hostname: ""
+  annotations: {}
+  # Adds an HTTP listener on port 80 that redirects to HTTPS.
+  httpsRedirect: true
+  tls:
+    # Request the managed *.<default-domain> certificate with a DefaultDomainCertificate.
+    # Set to false to bring your own TLS Secret in the release namespace.
+    defaultDomainCertificate: true
+    # TLS Secret referenced by the HTTPS listener. Defaults to <fullname>-tls.
+    secretName: ""
+
+# In-cluster PostgreSQL for demos. Single replica, no backups or HA.
+# Disable and use externalDatabase (for example Azure Database for PostgreSQL) for real use.
+postgresql:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: library/postgres
+    tag: "17.11-trixie"
+    pullPolicy: IfNotPresent
+  auth:
+    username: backstage
+    # Existing Secret with the password. When empty, the chart creates one with a
+    # random password that is preserved across upgrades.
+    existingSecret: ""
+    secretKey: password
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 8Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Used when postgresql.enabled is false. Backstage creates one database per
+# plugin, so the user needs CREATEDB (or set backend.database.pluginDivisionMode: schema in appConfig).
+externalDatabase:
+  host: ""
+  port: 5432
+  user: ""
+  # Secret holding the password. Defaults to `existingSecret` when empty.
+  existingSecret: ""
+  existingSecretPasswordKey: POSTGRES_PASSWORD
+  # Exposed as PGSSLMODE. Azure Database for PostgreSQL requires TLS.
+  sslMode: require

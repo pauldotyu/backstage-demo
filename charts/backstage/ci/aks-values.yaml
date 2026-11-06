@@ -1,0 +1,4 @@
+# Example values for the AKS cluster in azure-setup/. Placeholders only.
+gateway:
+  hostname: backstage.0123456789abcdef01234567.westus3.aksapp.io
+existingSecret: backstage-secrets

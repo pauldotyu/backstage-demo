@@ -52,10 +52,8 @@ resource "azuread_application" "example" {
   sign_in_audience = "AzureADMyOrg"
 
   web {
-    homepage_url = "https://backstage.${data.terraform_remote_state.azure.outputs.default_domain}"
-    redirect_uris = [
-      "https://backstage.${data.terraform_remote_state.azure.outputs.default_domain}/api/auth/microsoft/handler/frame"
-    ]
+    homepage_url  = "https://backstage.${data.terraform_remote_state.azure.outputs.default_domain}"
+    redirect_uris = ["https://backstage.${data.terraform_remote_state.azure.outputs.default_domain}/api/auth/microsoft/handler/frame"]
   }
 
   required_resource_access {
@@ -130,4 +128,21 @@ resource "local_file" "backstage_values" {
       AZURE_GROUP_ID      = azuread_group.backstage_users.object_id
     }
   )
+}
+
+output "client_id" {
+  value = azuread_application.example.client_id
+}
+
+output "client_secret" {
+  value     = tolist(azuread_application.example.password).0.value
+  sensitive = true
+}
+
+output "tenant_id" {
+  value = data.azuread_client_config.current.tenant_id
+}
+
+output "group_id" {
+  value = azuread_group.backstage_users.object_id
 }

@@ -1,0 +1,12 @@
+# Example values using an external database (for example Azure Database for PostgreSQL).
+gateway:
+  hostname: backstage.0123456789abcdef01234567.westus3.aksapp.io
+  httpsRedirect: false
+existingSecret: backstage-secrets
+image:
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+postgresql:
+  enabled: false
+externalDatabase:
+  host: example-pg.postgres.database.azure.com
+  user: backstage

@@ -1,0 +1,16 @@
+apiVersion: v2
+name: backstage-demo
+description: Backstage developer portal for AKS, exposed through the Gateway API with the AKS application routing default domain.
+type: application
+# Chart version. CI publishes this for tags and a prerelease of it for main.
+version: 0.1.0
+# Overwritten by CI with the image tag built from the same commit (sha-<short-sha>).
+appVersion: "0.0.0-dev"
+kubeVersion: ">=1.30.0-0"
+home: https://github.com/pauldotyu/backstage-demo
+sources:
+  - https://github.com/pauldotyu/backstage-demo
+keywords:
+  - backstage
+  - aks
+  - gateway-api
